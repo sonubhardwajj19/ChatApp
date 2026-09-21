@@ -6,6 +6,8 @@ import jwt from "jsonwebtoken";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import bcrypt from "bcrypt";
+import {WebSocketServer} from "ws";
+
 
 dotenv.config();
 
@@ -73,4 +75,20 @@ app.get('/profile', (req,res) => {
 
 })
 
-app.listen(4000);
+const server = app.listen(4000);
+
+const wss = new WebSocketServer({server});
+wss.on('connection', (connection,req)=>{
+    const cookies = req.headers.cookie;
+    if(cookies){
+      const tokenCookieString = cookies.split(';').find(string => string.startsWith('token='));
+      const token = tokenCookieString.split('=')[1]
+      if(token) {
+        jwt.verify(token,jwtSecret,{},(err,userData)=>{
+           const {userId,username} = userData;
+           connection.userId = userId;
+           connection.username = username;
+        })
+      }
+    }
+})
