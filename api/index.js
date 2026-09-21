@@ -5,6 +5,7 @@ import User from "./models/User.js";
 import jwt from "jsonwebtoken";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import bcrypt from "bcrypt";
 
 dotenv.config();
 
@@ -21,12 +22,14 @@ app.use(cors({
 mongoose.connect(process.env.MONGO_URL)
 const jwtSecret = process.env.JWT_SECRET;
 
+const bcryptSalt = bcrypt.genSaltSync(10);
+
 
 app.post('/register' , async (req,res) => {
     const {username , password} = req.body;
-    console.log(username)
     try {
-        const createdUser = await User.create({username,password});
+        const hashedPassword = bcrypt.hashSync(password,bcryptSalt)
+        const createdUser = await User.create({username,password:hashedPassword});
         jwt.sign({userId:createdUser._id,username}, jwtSecret, (err,token) => {
             if(err) throw err;
             res.cookie('token',token , {sameSite:'none' , secure:true}).status(201).json({
@@ -39,13 +42,30 @@ app.post('/register' , async (req,res) => {
 })
 
 
+app.post('/login', async (req,res)  => {
+    const {username,password} = req.body;
+    const foundUser = await User.findOne({username});
+    if(foundUser){
+        const passOk = bcrypt.compareSync(password,foundUser.password);
+       if(passOk){
+          jwt.sign({userId:foundUser._id,username}, jwtSecret ,{}, (err,token) => {
+             if (err) throw err;
+             res.cookie('token',token,{sameSite:'none', secure:true}).json({
+                id:foundUser._id
+             })
+          })
+       }
+    }
+})
+
+
 app.get('/profile', (req,res) => {
 
   const token= req.cookies?.token;
   if(token) {
       jwt.verify(token,jwtSecret , (err, userData) => {
           if(err) throw err;
-          res.json(userData);
+          res.status(201).json(userData);
       })
   } else {
     res.status(401).json('No token');

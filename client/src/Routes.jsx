@@ -1,16 +1,17 @@
 import { useContext } from "react";
-import Register from "./register";
 import { UserContext } from "./UserContext";
+import RegisterAndLoginForm from "./RegisterAndLoginForm";
+import Chat from "./Chat";
 
 export default function Routes() {
 
     const {id,username} = useContext(UserContext);
 
     if(username) {
-        return 'logged in'+ username;
+        return <Chat/>
     }
 
     return (
-        <Register/>
+        <RegisterAndLoginForm/>
     )
 }
