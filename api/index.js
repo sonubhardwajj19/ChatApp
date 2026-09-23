@@ -78,11 +78,13 @@ app.get('/profile', (req,res) => {
 const server = app.listen(4000);
 
 const wss = new WebSocketServer({server});
+
 wss.on('connection', (connection,req)=>{
+
     const cookies = req.headers.cookie;
     if(cookies){
-      const tokenCookieString = cookies.split(';').find(string => string.startsWith('token='));
-      const token = tokenCookieString.split('=')[1]
+        const tokenCookieString = cookies.split(';').find(string => string.startsWith('token='));
+        const token = tokenCookieString.split('=')[1]
       if(token) {
         jwt.verify(token,jwtSecret,{},(err,userData)=>{
            const {userId,username} = userData;

@@ -49,7 +49,7 @@ export default function RegisterAndLoginForm() {
 
                 { isLoginOrRegister === 'login' && (
                   <div>
-                    Don't have an acount?
+                    Don't have an acount ?
                     <button onClick={()=> setIsLoginOrRegister('register')}>
                         Register here
                     </button>
