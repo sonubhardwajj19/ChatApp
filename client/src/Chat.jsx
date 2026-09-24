@@ -6,10 +6,12 @@ import { useContext } from "react";
 import { UserContext } from "./UserContext";
 
 export default function Chat() {
+
     const [ws,setWs] = useState(null);
     const [onilnePeople , setOnlinePeople] = useState({});
     const [selectedUserId,setSelectedUserId] = useState(null);
     const {username,id} = useContext(UserContext);
+    const [newMessageText , setNewMessageText] = useState('');
 
     useEffect(()=>{
         const ws = new WebSocket('ws://localhost:4000');
@@ -19,14 +21,19 @@ export default function Chat() {
     },[])
 
     function handleMessage (ev) {
-        const messageData = JSON.parse(ev.data)
+        const messageData = JSON.parse(ev.data);
+      
         if('online' in messageData){
             showOnlinePeople(messageData.online)
+        } else {
+            console.log({messageData})
         }
     }
 
     function showOnlinePeople (peopleArray){
-      const people = {} ;   //people object :- have key value pair As long as your key is unique, each user gets a separate entry
+      const people = {} ;   
+      // people object :- have key value pair As long as your key is unique, 
+      // each user gets a separate entry
 
       peopleArray.forEach(({userId,username}) => {
           people[userId] = username;
@@ -35,6 +42,13 @@ export default function Chat() {
       setOnlinePeople(people);
     }
 
+    function sendMessage(ev){
+        ev.preventDefault();
+        ws.send(JSON.stringify({
+                recipient : selectedUserId,
+                text : newMessageText
+        }))
+    }
 
    const onlinePeopleExclOurUser = {...onilnePeople};
    delete onlinePeopleExclOurUser[id];
@@ -43,9 +57,9 @@ export default function Chat() {
     <div className="flex h-screen">
         <div className="bg-white w-1/3 shadow-lg shadow-gray-900">
             <Logo/>
-           {Object.keys(onlinePeopleExclOurUser).map(userId => (
+             {Object.keys(onlinePeopleExclOurUser).map(userId => (
             <div  key={userId} onClick={()=> setSelectedUserId(userId)}
-                  className={"border-b border-gray-300 flex items-center cursor-pointer "+(selectedUserId === userId ? 'bg-gray-200 rounded-sm' : '')}>
+                  className={"border-b border-gray-300 flex items-center cursor-pointer "+(selectedUserId === userId ? 'bg-gray-100 rounded-sm' : '')}>
                 { selectedUserId === userId && (
                     <span className="h-16 w-1 rounded-r-md bg-blue-500"></span>
                 )}
@@ -61,26 +75,37 @@ export default function Chat() {
 
 
         <div className="bg-blue-100 w-2/3 p-3 flex flex-col">
+
            <div className="flex-grow">
             
-             {!selectedUserId && (
-                <div className="flex h-full items-center justify-center">
-                   <div className="text-lg text-gray-400">
-                      &larr; Select a person to start chatting
-                   </div>
-                </div>
-             )}
+                {!selectedUserId && (
+                    <div className="flex h-full items-center justify-center">
+                    <div className="text-lg text-gray-400">
+                        &larr; Select a person to start chatting
+                    </div>
+                    </div>
+                )}
 
             </div>
-           <div className="flex gap-2">
-              <input type="text" placeholder="Type your message here" 
-               className="bg-white p-3 border rounded-lg flex-grow" />
-               <button className="bg-blue-500 p-3 text-white rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-                </svg>
-               </button>
-           </div>
+
+
+           {!!selectedUserId && (
+                <form className="flex gap-2" onSubmit={sendMessage}>
+                    <input type="text" placeholder="Type your message here" 
+                            value={newMessageText}
+                            onChange={e => setNewMessageText(e.target.value)}
+                            className="bg-white p-3 border rounded-lg flex-grow" />
+
+                    <button  type="submit"
+                            className="bg-blue-500 p-3 text-white rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                            </svg>
+                    </button>
+                </form>
+           )}
+           
+
         </div>
     </div>
     </>

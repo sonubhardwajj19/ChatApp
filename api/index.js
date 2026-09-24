@@ -94,13 +94,28 @@ wss.on('connection', (connection,req)=>{
       }
     }
 
-
-
-    // console.log([...wss.clients].map(c => c.username))
+    // notify everyone when some new user connects
 
     [...wss.clients].forEach(client => {
         client.send(JSON.stringify({
             online:  [...wss.clients].map( c => ({userId:c.userId , username:c.username}))
         }))
     })
+
+
+    connection.on('message', (message)=> {
+    const messageData = JSON.parse(message.toString());
+    const {recipient,text} = messageData;
+
+    // we are using userId jo message object mai aayi thi => usssai pehle reciever ko find kr rhe hain
+    // and then use text send kr rhe 
+
+    if (recipient && text) {
+        [...wss.clients]
+        .filter(c => c.userId === recipient)
+        .forEach(c => c.send(JSON.stringify({text}))); 
+    }
+    });
+  
+ 
 })
