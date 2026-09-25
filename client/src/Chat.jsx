@@ -4,6 +4,7 @@ import Avatar from "./Avatar";
 import Logo from "./Logo";
 import { useContext } from "react";
 import { UserContext } from "./UserContext";
+import { uniqBy } from "lodash";
 
 export default function Chat() {
 
@@ -12,6 +13,7 @@ export default function Chat() {
     const [selectedUserId,setSelectedUserId] = useState(null);
     const {username,id} = useContext(UserContext);
     const [newMessageText , setNewMessageText] = useState('');
+    const [messages , setMessages] = useState([]);
 
     useEffect(()=>{
         const ws = new WebSocket('ws://localhost:4000');
@@ -22,11 +24,11 @@ export default function Chat() {
 
     function handleMessage (ev) {
         const messageData = JSON.parse(ev.data);
-      
+     
         if('online' in messageData){
             showOnlinePeople(messageData.online)
-        } else {
-            console.log({messageData})
+        } else if('text' in messageData){
+          setMessages(prev => ([...prev,{...messageData}]))
         }
     }
 
@@ -48,10 +50,21 @@ export default function Chat() {
                 recipient : selectedUserId,
                 text : newMessageText
         }))
+        
+        setMessages(prev => ([...prev,{
+            text:newMessageText,
+            sender:id,
+            recipient:selectedUserId,
+            id:Date.now()
+        }]))
+        setNewMessageText('');
+
     }
 
    const onlinePeopleExclOurUser = {...onilnePeople};
    delete onlinePeopleExclOurUser[id];
+
+   const messsagesWihtoutDupes = uniqBy(messages,'id');
 
     return <>
     <div className="flex h-screen">
@@ -74,7 +87,7 @@ export default function Chat() {
         </div>
 
 
-        <div className="bg-blue-100 w-2/3 p-3 flex flex-col">
+        <div className="bg-blue-100 w-2/3 p-3 flex flex-col ">
 
            <div className="flex-grow">
             
@@ -86,6 +99,21 @@ export default function Chat() {
                     </div>
                 )}
 
+                {!!selectedUserId && (
+                
+                    <div className="relative h-full">
+                        <div className="overflow-y-scroll absolute inset-0">
+                            {messsagesWihtoutDupes.map(message => (
+                                <div className="flex">
+                                    <div className={"p-2.5 my-2 rounded-md text-sm inline-block "+ (message.sender === id ? 'bg-blue-500 text-white ml-auto' : 'bg-gray-400 text-white')}>
+                                        {message.text}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
             </div>
 
 

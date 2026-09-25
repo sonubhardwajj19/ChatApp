@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import mongoose  from "mongoose";
 import User from "./models/User.js";
+import Message from "./models/Message.js";
 import jwt from "jsonwebtoken";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -84,13 +85,16 @@ wss.on('connection', (connection,req)=>{
     const cookies = req.headers.cookie;
     if(cookies){
         const tokenCookieString = cookies.split(';').find(string => string.startsWith('token='));
-        const token = tokenCookieString.split('=')[1]
-      if(token) {
-        jwt.verify(token,jwtSecret,{},(err,userData)=>{
-           const {userId,username} = userData;
-           connection.userId = userId;
-           connection.username = username;
-        })
+     if(tokenCookieString) {
+          const token = tokenCookieString.split('=')[1];
+          if (token){
+              jwt.verify(token,jwtSecret,{},(err,userData)=>{
+               if(err) throw err;
+               const {userId,username} = userData;
+               connection.userId = userId;
+               connection.username = username;
+            })
+          }
       }
     }
 
@@ -103,7 +107,7 @@ wss.on('connection', (connection,req)=>{
     })
 
 
-    connection.on('message', (message)=> {
+    connection.on('message', async (message)=> {
     const messageData = JSON.parse(message.toString());
     const {recipient,text} = messageData;
 
@@ -111,10 +115,22 @@ wss.on('connection', (connection,req)=>{
     // and then use text send kr rhe 
 
     if (recipient && text) {
+        const messageDoc = await Message.create({
+            sender:connection.userId,
+            recipient,
+            text
+        });
+
         [...wss.clients]
         .filter(c => c.userId === recipient)
-        .forEach(c => c.send(JSON.stringify({text}))); 
+        .forEach(c => c.send(JSON.stringify({
+            sender:connection.userId,
+            recipient,
+            text,
+            id:messageDoc._id
+        }))); 
     }
+    
     });
   
  
