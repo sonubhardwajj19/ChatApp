@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useEffect } from "react"
 import Avatar from "./Avatar";
 import Logo from "./Logo";
@@ -8,12 +8,13 @@ import { uniqBy } from "lodash";
 
 export default function Chat() {
 
-    const [ws,setWs] = useState(null);
+    const [ws, setWs] = useState(null);
     const [onilnePeople , setOnlinePeople] = useState({});
-    const [selectedUserId,setSelectedUserId] = useState(null);
-    const {username,id} = useContext(UserContext);
-    const [newMessageText , setNewMessageText] = useState('');
-    const [messages , setMessages] = useState([]);
+    const [selectedUserId, setSelectedUserId] = useState(null);
+    const {username, id} = useContext(UserContext);
+    const [newMessageText, setNewMessageText] = useState('');
+    const [messages, setMessages] = useState([]);
+    const divUnderMessages = useRef();
 
     useEffect(()=>{
         const ws = new WebSocket('ws://localhost:4000');
@@ -26,9 +27,9 @@ export default function Chat() {
         const messageData = JSON.parse(ev.data);
      
         if('online' in messageData){
-            showOnlinePeople(messageData.online)
+            showOnlinePeople(messageData.online);
         } else if('text' in messageData){
-          setMessages(prev => ([...prev,{...messageData}]))
+          setMessages(prev => ([...prev,{...messageData}]));
         }
     }
 
@@ -58,8 +59,16 @@ export default function Chat() {
             id:Date.now()
         }]))
         setNewMessageText('');
-
+        
     }
+    
+    useEffect(()=>{
+        const div = divUnderMessages.current;
+        if (div){
+            div.scrollIntoView({behavior:'smooth',block:'end'})
+        }
+
+    },[messages]);
 
    const onlinePeopleExclOurUser = {...onilnePeople};
    delete onlinePeopleExclOurUser[id];
@@ -68,6 +77,7 @@ export default function Chat() {
 
     return <>
     <div className="flex h-screen">
+
         <div className="bg-white w-1/3 shadow-lg shadow-gray-900">
             <Logo/>
              {Object.keys(onlinePeopleExclOurUser).map(userId => (
@@ -83,7 +93,6 @@ export default function Chat() {
                 </div>
             </div>
            ))}
-
         </div>
 
 
@@ -101,8 +110,8 @@ export default function Chat() {
 
                 {!!selectedUserId && (
                 
-                    <div className="relative h-full">
-                        <div className="overflow-y-scroll absolute inset-0">
+                    <div className="relative h-full overflow-y-scroll">
+                        <div className="absolute inset-0 m-4">
                             {messsagesWihtoutDupes.map(message => (
                                 <div className="flex">
                                     <div className={"p-2.5 my-2 rounded-md text-sm inline-block "+ (message.sender === id ? 'bg-blue-500 text-white ml-auto' : 'bg-gray-400 text-white')}>
@@ -110,6 +119,7 @@ export default function Chat() {
                                     </div>
                                 </div>
                             ))}
+                            <div ref={divUnderMessages}></div>
                         </div>
                     </div>
                 )}
@@ -118,14 +128,14 @@ export default function Chat() {
 
 
            {!!selectedUserId && (
-                <form className="flex gap-2" onSubmit={sendMessage}>
+                <form className="flex gap-2 m-5" onSubmit={sendMessage}>
                     <input type="text" placeholder="Type your message here" 
                             value={newMessageText}
                             onChange={e => setNewMessageText(e.target.value)}
                             className="bg-white p-3 border rounded-lg flex-grow" />
 
                     <button  type="submit"
-                            className="bg-blue-500 p-3 text-white rounded-lg">
+                            className="bg-blue-500 p-3 text-white rounded-lg ">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
                             </svg>
